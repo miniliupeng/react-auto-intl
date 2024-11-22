@@ -7,8 +7,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { transformFromAstSync, } from "@babel/core";
-import parser from "@babel/parser";
+import { transformSync,
+// transformFromAstSync
+ } from "@babel/core";
+// import parser from "@babel/parser";
 import template from "@babel/template";
 import { jsxExpressionContainer, } from "@babel/types";
 import prettier from "prettier";
@@ -97,9 +99,22 @@ function babelAutoIntlPlugin({ excludeFiles = [], }) {
                 function getAllCnMessages() {
                     const messageKeys = [];
                     path.traverse({
+                        TSEnumDeclaration(path) {
+                            // 如果是 const enum，遍历枚举成员
+                            path.node.members.forEach((member) => {
+                                const key = member.id.name || member.id.value;
+                                chineseSkip(path, key); // 自定义函数，检查是否是中文并跳过
+                                if (path.node.skip)
+                                    return;
+                                const trimmedValue = key.trim();
+                                if (!messageKeys.includes(trimmedValue))
+                                    messageKeys.push(trimmedValue);
+                            });
+                        },
                         "JSXText|StringLiteral"(path) {
-                            traverseSkip(path);
+                            // traverseSkip(path);
                             const node = path.node;
+                            console.log(node.value);
                             chineseSkip(path, node.value);
                             if (node.skip)
                                 return;
@@ -204,13 +219,21 @@ function babelAutoIntlPlugin({ excludeFiles = [], }) {
 export function transformFile(filePath) {
     return __awaiter(this, void 0, void 0, function* () {
         const sourceCode = yield readFile(filePath, "utf-8");
-        const ast = parser.parse(sourceCode, {
-            sourceType: "module",
-            plugins: ["jsx", "typescript"],
-        });
-        const res = transformFromAstSync(ast, sourceCode, {
+        // const ast = parser.parse(sourceCode, {
+        //   sourceType: "module",
+        //   plugins: ["jsx", "typescript"],
+        // });
+        // const res = transformFromAstSync(ast, sourceCode, {
+        //   plugins: [babelAutoIntlPlugin],
+        //   retainLines: true,
+        //   presets: ["@babel/preset-typescript"],
+        //   filename: filePath
+        // });
+        const res = transformSync(sourceCode, {
             plugins: [babelAutoIntlPlugin],
             retainLines: true,
+            presets: ["@babel/preset-typescript"],
+            filename: filePath
         });
         const formatedCode = yield prettier.format(res === null || res === void 0 ? void 0 : res.code, {
             filepath: filePath,

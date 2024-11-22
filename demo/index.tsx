@@ -1,3 +1,17 @@
+export const enum BlockStatusMapEnum {
+  全部,
+  过期的,
+  生效中的,
+  将来生效的
+}
+
+export const enum BlockStatusMapEnum2 {
+  全部 = '全部',
+  过期的 = '过期的',
+  生效中的 = '生效中的',
+  将来生效的 = '将来生效的'
+}
+
 function App() {
   const title = '安佛';
   const desc = `蜂蜜`;

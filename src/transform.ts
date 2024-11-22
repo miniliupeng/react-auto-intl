@@ -2,9 +2,10 @@ import {
   NodePath,
   PluginObj,
   PluginPass,
-  transformFromAstSync,
+  transformSync,
+  // transformFromAstSync
 } from "@babel/core";
-import parser from "@babel/parser";
+// import parser from "@babel/parser";
 import template from "@babel/template";
 import {
   jsxExpressionContainer,
@@ -123,9 +124,22 @@ function babelAutoIntlPlugin({
         function getAllCnMessages() {
           const messageKeys: string[] = [];
           path.traverse({
+            TSEnumDeclaration(path) {
+              // 如果是 const enum，遍历枚举成员
+              path.node.members.forEach((member) => {
+                const key = member.id.name || member.id.value;
+                chineseSkip(path, key); // 自定义函数，检查是否是中文并跳过
+                if (path.node.skip) return;
+                const trimmedValue = key.trim();
+                if (!messageKeys.includes(trimmedValue))
+                  messageKeys.push(trimmedValue);
+              });
+            },
             "JSXText|StringLiteral"(path) {
-              traverseSkip(path);
+              // traverseSkip(path);
               const node = path.node as StringLiteral | JSXText;
+              console.log(node.value);
+              
               chineseSkip(path, node.value);
               if (node.skip) return;
               // console.log("JSXText|StringLiteral", node.value);
@@ -206,6 +220,7 @@ function babelAutoIntlPlugin({
           ) {
             return;
           }
+          
           chineseSkip(path, path.node.value);
           if (path.node.skip) return;
           path.replaceWith(createFormatMessageCall(path.node.value));
@@ -254,16 +269,23 @@ function babelAutoIntlPlugin({
 export async function transformFile(filePath: string) {
   const sourceCode = await readFile(filePath, "utf-8");
 
-  const ast = parser.parse(sourceCode, {
-    sourceType: "module",
-    plugins: ["jsx", "typescript"],
-  });
+  // const ast = parser.parse(sourceCode, {
+  //   sourceType: "module",
+  //   plugins: ["jsx", "typescript"],
+  // });
 
-  const res = transformFromAstSync(ast, sourceCode, {
+  // const res = transformFromAstSync(ast, sourceCode, {
+  //   plugins: [babelAutoIntlPlugin],
+  //   retainLines: true,
+  //   presets: ["@babel/preset-typescript"],
+  //   filename: filePath
+  // });
+  const res = transformSync(sourceCode, {
     plugins: [babelAutoIntlPlugin],
     retainLines: true,
+    presets: ["@babel/preset-typescript"],
+    filename: filePath
   });
-
   const formatedCode = await prettier.format(res?.code!, {
     filepath: filePath,
   });
